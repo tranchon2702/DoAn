@@ -1,0 +1,51 @@
+version: '3.8'
+services:
+  front:
+    build: ./public
+    ports:
+      - "3000:3000"  # Map cổng 3000 của máy host với cổng 3000 của container frontend
+    depends_on:
+      - api  # Đảm bảo frontend chỉ chạy sau khi API khởi động
+    networks:
+      - chat-network  # Kết nối với mạng chung
+
+  api:
+    build: ./server
+    ports:
+      - "5000:5000"  # Map cổng 5000 của máy host với cổng 5000 của container backend
+    environment:
+      - MONGO_URL=mongodb://mongo:27017/chat  # Kết nối tới MongoDB
+    depends_on:
+      - mongo  # Đảm bảo API chỉ chạy sau khi MongoDB đã khởi động
+    networks:
+      - chat-network  # Kết nối với mạng chung
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    ports:
+      - "27017:27017"  # Expose cổng 27017 của MongoDB
+    volumes:
+      - ./data/db:/data/db  # Lưu dữ liệu MongoDB ra thư mục máy host
+    networks:
+      - chat-network  # Kết nối với mạng chung
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_URL=mongodb://mongo:27017/chat
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=pass
+    depends_on:
+      - mongo
+    networks:
+      - chat-network
+
+networks:
+  chat-network:
+    driver: bridge
